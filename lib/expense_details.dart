@@ -1,4 +1,4 @@
-// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
+// ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously, depend_on_referenced_packages, prefer_const_constructors
 
 import 'package:flutter_app/controllers/fetch_data.dart';
 import 'package:flutter_app/controllers/signin.dart';

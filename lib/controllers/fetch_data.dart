@@ -1,7 +1,4 @@
-import 'dart:ffi';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_app/controllers/signin.dart';
 import 'package:flutter_app/transactions.dart';
 
@@ -40,14 +37,12 @@ Future<List<Transactions>> getAllData2() async {
   }
   await Future.delayed(const Duration(milliseconds: 1));
   user = auth.currentUser!;
-  print(user?.email);
   var val = await FirebaseFirestore.instance
       .collection('users')
       .doc(user?.email)
       .collection('transactions')
       .get();
   var documents = val.docs;
-  print(val.docs);
   if (documents.isNotEmpty) {
     return documents.map((document) {
       Transactions bookingList =

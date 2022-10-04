@@ -1,11 +1,13 @@
 //SignInScreen
 
-import 'package:firebase_auth/firebase_auth.dart';
+// ignore_for_file: library_private_types_in_public_api
+
 import 'package:flutter/material.dart';
 import 'package:flutter_app/controllers/signin.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class SignInScreen extends StatefulWidget {
+  const SignInScreen({super.key});
+
 // SignInScreen({Key key}) : super(key: key);
 
   @override
@@ -30,13 +32,13 @@ class _SignInScreenState extends State<SignInScreen> {
               ),
             ),
             child: Card(
-                margin:
-                    EdgeInsets.only(top: 200, bottom: 200, left: 30, right: 30),
+                margin: const EdgeInsets.only(
+                    top: 200, bottom: 200, left: 30, right: 30),
                 elevation: 20,
                 child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      Text(
+                      const Text(
                         "ACM THAPER LOGIN",
                         style: TextStyle(
                             fontSize: 25, fontWeight: FontWeight.bold),
@@ -52,11 +54,11 @@ class _SignInScreenState extends State<SignInScreen> {
                               children: [
                                 // ),
                                 auth.currentUser != null
-                                    ? Text(
+                                    ? const Text(
                                         "Sign Out",
                                         style: TextStyle(fontSize: 18),
                                       )
-                                    : Text(
+                                    : const Text(
                                         "Sign In with Google",
                                         style: TextStyle(fontSize: 18),
                                       )
