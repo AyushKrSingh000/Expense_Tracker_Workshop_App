@@ -1,10 +1,16 @@
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_app/controllers/fetch_data.dart';
 import 'package:flutter_app/expense_details.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../pages/signinpage.dart';
 
 final FirebaseAuth auth = FirebaseAuth.instance;
-
+late SharedPreferences prefs;
 Future<void> signup(BuildContext context) async {
   final GoogleSignIn googleSignIn = GoogleSignIn();
   final GoogleSignInAccount? googleSignInAccount = await googleSignIn.signIn();
@@ -17,22 +23,29 @@ Future<void> signup(BuildContext context) async {
 
     // Getting users credential
     UserCredential result = await auth.signInWithCredential(authCredential);
-
+    prefs = await SharedPreferences.getInstance();
     User user = result.user!;
     user = auth.currentUser!;
-    print(user.displayName);
-
-    Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => ExpenseDetails()),
-        (route) => false);
+    moveToHomePage(context);
   }
 }
 
 Future<void> SignOut(BuildContext context) async {
-  auth.signOut();
+  await auth.signOut();
+  Future.delayed(Duration(milliseconds: 1));
+  user = null;
+
+  moveToHomePage(context);
+}
+
+void moveToHomePage(BuildContext context) {
   Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => ExpenseDetails()),
       (route) => false);
+}
+
+void movetosignInPage(BuildContext context) {
+  Navigator.of(context)
+      .push(MaterialPageRoute(builder: ((context) => SignInScreen())));
 }

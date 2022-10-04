@@ -63,9 +63,11 @@ class _SignInScreenState extends State<SignInScreen> {
                               ],
                             ),
                             onPressed: () {
-                              auth.currentUser == null
-                                  ? signup(context)
-                                  : SignOut(context);
+                              setState(() {
+                                auth.currentUser == null
+                                    ? signup(context)
+                                    : SignOut(context);
+                              });
                             },
                           ))
                     ]))));

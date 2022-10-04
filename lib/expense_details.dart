@@ -1,16 +1,20 @@
 // ignore_for_file: library_private_types_in_public_api, use_build_context_synchronously
 
-import 'dart:convert';
+import 'package:flutter_app/controllers/fetch_data.dart';
+import 'package:flutter_app/controllers/signin.dart';
+import 'package:flutter_app/utils/alertdialog.dart';
+import 'package:intl/intl.dart';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_app/pages/signinpage.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'transactions.dart';
 
 const Color activeColor = Color(0xffFF2E63);
 const Color inactiveColor = Color(0xff6C73AE);
+User? user;
 
 class ExpenseDetails extends StatefulWidget {
   const ExpenseDetails({super.key});
@@ -20,61 +24,101 @@ class ExpenseDetails extends StatefulWidget {
 }
 
 class _ExpenseDetailsState extends State<ExpenseDetails> {
+  Future<void> saveData() async {
+    int data1;
+    if (transactionData == null) {
+      data1 = 1000000000;
+    } else {
+      data1 = transactionData?.total as int;
+    }
+    if (user == null) {
+      return;
+    }
+    final fi = FirebaseFirestore.instance.collection('users').doc(user?.email);
+    final DateTime now = DateTime.now();
+    final DateFormat formatter = DateFormat('yyyy-MM-dd');
+    final String formatted = formatter.format(now);
+    fi.collection('transactions').doc('${data1 + 1}').set({
+      "description": transDesc,
+      "Amount": int.parse(transAmt),
+      "time": formatted
+    }, SetOptions(merge: false));
+    setAmountData(balance, data1 + 1);
+    getAllData();
+  }
+
   String selection = "";
   late SharedPreferences prefs;
 
   String transDesc = "";
   String transAmt = "";
-  User? user;
+
   int balance = 0;
 
   @override
   void initState() {
+    setState(() {});
     if (auth.currentUser != null) {
       user = auth.currentUser!;
     }
+
     initsharedPrefence();
+
     setState(() {});
     super.initState();
+    setState(() {});
+    // saveData();
   }
+
+  // void saveData() async {
+  //   prefs = await SharedPreferences.getInstance();
+  //   if (user == null) {
+  //     return;
+  //   }
+  //   List<String> stringList =
+  //       transactions.map((item) => json.encode(item.toMap())).toList();
+  //   prefs.setStringList('list', stringList);
+  //   print(prefs.getStringList('list'));
+  // }
 
   final FirebaseAuth auth = FirebaseAuth.instance;
 
   void initsharedPrefence() async {
-    prefs = await SharedPreferences.getInstance();
-    loadData();
+    transactions = await getAllData2();
 
+    setState(() {});
+    // saveData();
+    prefs = await SharedPreferences.getInstance();
+    // loadData();
+    balance = await getAllData();
+    setState(() {});
     if (auth.currentUser == null) {
     } else {
       user = auth.currentUser!;
     }
   }
 
-  void saveData() {
-    List<String> stringList =
-        transactions.map((item) => json.encode(item.toMap())).toList();
-    prefs.setStringList('list', stringList);
-  }
-
-  void saveAmt(int amt) {
-    prefs.setInt('balance', amt);
-  }
-
-  void loadData() {
-    List<String>? listString = prefs.getStringList('list');
-    if (prefs.getInt('balance') == null) {
-      balance = 0;
-    } else {
-      balance = prefs.getInt('balance') as int;
-    }
-    // balance =  prefs.getInt('balance')!;
-    if (listString != null) {
-      transactions = listString
-          .map((item) => Transaction.fromMap(json.decode(item)))
-          .toList();
-      setState(() {});
-    }
-  }
+  // void loadData() {
+  //   if (user == null) {
+  //     setState(() {
+  //       transactions.clear();
+  //     });
+  //     print('elo');
+  //     return;
+  //   }
+  //   List<String>? listString = prefs.getStringList('list');
+  //   if (prefs.getInt('balance') == null) {
+  //     balance = 0;
+  //   } else {
+  //     balance = prefs.getInt('balance') as int;
+  //   }
+  //   if (listString != null) {
+  //     transactions = listString
+  //         .map((item) => Transactions.fromMap(json.decode(item)))
+  //         .toList();
+  //     setState(() {});
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -117,10 +161,9 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                           ),
                           InkWell(
                             onTap: () {
-                              Navigator.of(context).push(MaterialPageRoute(
-                                  builder: ((context) => SignInScreen())));
+                              movetosignInPage(context);
                             },
-                            child: user?.displayName != null
+                            child: user != null
                                 ? Text(
                                     '${user?.displayName}',
                                     style: const TextStyle(
@@ -129,7 +172,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                                         fontWeight: FontWeight.bold),
                                   )
                                 : const Text(
-                                    'Hello ',
+                                    'Login Here',
                                     style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 20,
@@ -142,54 +185,67 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                 ),
                 InkWell(
                   onTap: () {
-                    showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15)),
-                              backgroundColor: const Color(0xff010A43),
-                              title: const Text("Update Balance",
-                                  style: TextStyle(
-                                      fontSize: 24,
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold)),
-                              content: TextField(
-                                keyboardType: TextInputType.numberWithOptions(
-                                    decimal: false, signed: false),
-                                onChanged: (text) {
-                                  if (text == '') {
-                                    balance = 0;
-                                  } else {
-                                    balance = int.parse(text);
-                                  }
-                                },
-                                cursorColor: Colors.white,
-                                decoration: InputDecoration(
-                                    filled: true, //<-- SEE HERE
-                                    fillColor: Colors.white,
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10.0),
-                                    ),
-                                    hintText: 'New Balance',
-                                    hintStyle: const TextStyle(
-                                        color: Color(0xff010A43),
-                                        fontWeight: FontWeight.bold)),
-                              ),
-                              actions: [
-                                ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(
-                                            12), // <-- Radius
-                                      ),
-                                    ),
-                                    onPressed: () {
-                                      saveAmt(balance);
-                                      Navigator.pop(context);
+                    user == null
+                        ? dialogbox(context)
+                        : showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(15)),
+                                  backgroundColor: const Color(0xff010A43),
+                                  title: const Text("Update Balance",
+                                      style: TextStyle(
+                                          fontSize: 24,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold)),
+                                  content: TextField(
+                                    keyboardType:
+                                        TextInputType.numberWithOptions(
+                                            decimal: false, signed: false),
+                                    onChanged: (text) {
+                                      if (text == '') {
+                                        balance = 0;
+                                      } else {
+                                        balance = int.parse(text);
+                                      }
                                     },
-                                    child: const Text('Update'))
-                              ],
-                            ));
+                                    cursorColor: Colors.white,
+                                    decoration: InputDecoration(
+                                        filled: true, //<-- SEE HERE
+                                        fillColor: Colors.white,
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10.0),
+                                        ),
+                                        hintText: 'New Balance',
+                                        hintStyle: const TextStyle(
+                                            color: Color(0xff010A43),
+                                            fontWeight: FontWeight.bold)),
+                                  ),
+                                  actions: [
+                                    ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                                12), // <-- Radius
+                                          ),
+                                        ),
+                                        onPressed: () {
+                                          // saveAmt(balance);
+                                          setState(() {});
+                                          setAmountData(
+                                              balance,
+                                              transactionData == null
+                                                  ? 0
+                                                  : transactionData?.total
+                                                      as int);
+
+                                          Navigator.pop(context);
+                                          setState(() {});
+                                        },
+                                        child: const Text('Update'))
+                                  ],
+                                ));
                   },
                   child: SizedBox(
                       height: MediaQuery.of(context).size.height * 0.4,
@@ -293,6 +349,9 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                                     prefs.clear();
                                     transactions.clear();
                                     balance = 0;
+                                    removeAllData();
+                                    // loadData();
+                                    getAllData();
                                     setState(() {});
                                   },
                                   child: const Text(
@@ -310,10 +369,14 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                         ),
                         Expanded(
                           child: ListView.builder(
+                            // reverse: true,
                             itemBuilder: (ctx, i) => TransactionTile(
-                              amount: transactions[i].amount.toDouble(),
+                              amount: transactions[transactions.length - i - 1]
+                                  .amount
+                                  .toDouble(),
                               imageUrl: "assets/images/friend1.jpg",
-                              name: transactions[i].desc,
+                              name: transactions[transactions.length - i - 1]
+                                  .desc,
                               paid: true,
                             ),
                             itemCount: transactions.length,
@@ -330,108 +393,112 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          showDialog(
-              context: context,
-              builder: (context) => Dialog(
-                  backgroundColor: Colors.transparent,
-                  insetPadding: const EdgeInsets.all(10),
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: <Widget>[
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(15),
-                              color: const Color(0xff010A43)),
-                          padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
-                          child: SingleChildScrollView(
-                            child: Column(
-                              children: [
-                                const Text("Add Transaction",
-                                    style: TextStyle(
-                                        fontSize: 24,
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold),
-                                    textAlign: TextAlign.center),
-                                const SizedBox(
-                                  height: 50,
-                                ),
-                                TextField(
-                                  onChanged: (text) {
-                                    transDesc = text;
-                                  },
-                                  cursorColor: Colors.white,
-                                  decoration: InputDecoration(
-                                      filled: true, //<-- SEE HERE
-                                      fillColor: Colors.white,
-                                      border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10.0),
-                                      ),
-                                      hintText: 'Transaction Details',
-                                      hintStyle: const TextStyle(
-                                          color: Color(0xff010A43),
-                                          fontWeight: FontWeight.bold)),
-                                ),
-                                const SizedBox(
-                                  height: 20,
-                                ),
-                                TextField(
-                                  onChanged: (text) {
-                                    transAmt = text;
-                                  },
-                                  cursorColor: Colors.white,
-                                  decoration: InputDecoration(
-                                      filled: true, //<-- SEE HERE
-                                      fillColor: Colors.white,
-                                      border: OutlineInputBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10.0),
-                                      ),
-                                      hintText: 'Transaction Amount',
-                                      hintStyle: const TextStyle(
-                                          color: Color(0xff010A43),
-                                          fontWeight: FontWeight.bold)),
-                                ),
-                                const SizedBox(
-                                  height: 20,
-                                ),
-                                ElevatedButton(
-                                  onPressed: () async {
-                                    transactions.insert(
-                                        0,
-                                        Transaction(
-                                            amount: int.parse(transAmt),
-                                            desc: transDesc));
-
-                                    balance = balance - int.parse(transAmt);
-
-                                    setState(() {});
-                                    saveData();
-                                    saveAmt(balance);
-                                    Navigator.pop(context);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(
-                                          12), // <-- Radius
+          user == null
+              ? dialogbox(context)
+              : showDialog(
+                  context: context,
+                  builder: (context) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      insetPadding: const EdgeInsets.all(10),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.center,
+                        children: <Widget>[
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(15),
+                                  color: const Color(0xff010A43)),
+                              padding:
+                                  const EdgeInsets.fromLTRB(20, 50, 20, 20),
+                              child: SingleChildScrollView(
+                                child: Column(
+                                  children: [
+                                    const Text("Add Transaction",
+                                        style: TextStyle(
+                                            fontSize: 24,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),
+                                        textAlign: TextAlign.center),
+                                    const SizedBox(
+                                      height: 50,
                                     ),
-                                  ),
-                                  child: const Padding(
-                                    padding: EdgeInsets.all(8.0),
-                                    child: Text('ADD'),
-                                  ),
-                                )
-                              ],
+                                    TextField(
+                                      onChanged: (text) {
+                                        transDesc = text;
+                                      },
+                                      cursorColor: Colors.white,
+                                      decoration: InputDecoration(
+                                          filled: true, //<-- SEE HERE
+                                          fillColor: Colors.white,
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10.0),
+                                          ),
+                                          hintText: 'Transaction Details',
+                                          hintStyle: const TextStyle(
+                                              color: Color(0xff010A43),
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                    const SizedBox(
+                                      height: 20,
+                                    ),
+                                    TextField(
+                                      onChanged: (text) {
+                                        transAmt = text;
+                                      },
+                                      cursorColor: Colors.white,
+                                      decoration: InputDecoration(
+                                          filled: true, //<-- SEE HERE
+                                          fillColor: Colors.white,
+                                          border: OutlineInputBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10.0),
+                                          ),
+                                          hintText: 'Transaction Amount',
+                                          hintStyle: const TextStyle(
+                                              color: Color(0xff010A43),
+                                              fontWeight: FontWeight.bold)),
+                                    ),
+                                    const SizedBox(
+                                      height: 20,
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        transactions.insert(
+                                            transactions.length,
+                                            Transactions(
+                                                amount: int.parse(transAmt),
+                                                desc: transDesc,
+                                                time: '${DateTime.now().day}'));
+
+                                        balance = balance - int.parse(transAmt);
+
+                                        setState(() {});
+                                        saveData();
+                                        setState(() {});
+                                        Navigator.pop(context);
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                              12), // <-- Radius
+                                        ),
+                                      ),
+                                      child: const Padding(
+                                        padding: EdgeInsets.all(8.0),
+                                        child: Text('ADD'),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    ],
-                  )));
+                        ],
+                      )));
         },
         backgroundColor: const Color(0xff010c86),
         child: const Icon(Icons.add),
@@ -440,7 +507,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
   }
 }
 
-List<Transaction> transactions = [];
+List<Transactions> transactions = [];
 
 class TransactionTile extends StatelessWidget {
   final String imageUrl, name;
