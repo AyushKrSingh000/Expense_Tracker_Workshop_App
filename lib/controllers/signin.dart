@@ -1,8 +1,8 @@
-import 'dart:convert';
+// ignore_for_file: use_build_context_synchronously, non_constant_identifier_names, unused_local_variable
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_app/controllers/fetch_data.dart';
+
 import 'package:flutter_app/expense_details.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -32,7 +32,7 @@ Future<void> signup(BuildContext context) async {
 
 Future<void> SignOut(BuildContext context) async {
   await auth.signOut();
-  Future.delayed(Duration(milliseconds: 1));
+  Future.delayed(const Duration(milliseconds: 1));
   user = null;
 
   moveToHomePage(context);
@@ -41,11 +41,11 @@ Future<void> SignOut(BuildContext context) async {
 void moveToHomePage(BuildContext context) {
   Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => ExpenseDetails()),
+      MaterialPageRoute(builder: (context) => const ExpenseDetails()),
       (route) => false);
 }
 
 void movetosignInPage(BuildContext context) {
   Navigator.of(context)
-      .push(MaterialPageRoute(builder: ((context) => SignInScreen())));
+      .push(MaterialPageRoute(builder: ((context) => const SignInScreen())));
 }
